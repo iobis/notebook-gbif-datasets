@@ -1,0 +1,71 @@
+---
+title: OBIS datasets in GBIF
+author: Pieter Provoost
+output: html_document
+editor_options: 
+  chunk_output_type: console
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "web") })    
+---
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+library(dplyr)
+library(robis)
+library(rgbif)
+library(formattable)
+
+p(format(Sys.time(), "%B %d, %Y %H:%M"))
+force_refresh <- TRUE
+```
+
+This is an overview of the percentage by node of datasets and records published to GBIF.
+
+```{css, echo=FALSE}
+p {
+  margin: 10px 0px;
+}
+h3 {
+  margin: 20px 0px;
+}
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+obis_datasets <- dataset()
+
+gbif_datasets_list <- list()
+offset <- 0
+i <- 1
+n <- datasets()$meta$count
+while (offset < n) {
+  message(offset)
+  df <- datasets(limit = 1000, start = offset)$data
+  gbif_datasets_list[[i]] <- df
+  i <- i + 1
+  offset <- offset + 1000
+}
+
+gbif_datasets <- bind_rows(gbif_datasets_list) %>%
+  select(title)
+
+obis_datasets <- obis_datasets %>%
+  mutate(in_gbif = title %in% gbif_datasets$title)
+
+stats <- obis_datasets %>%
+  mutate(records_gbif = records * as.numeric(in_gbif)) %>%
+  group_by(node_name) %>%
+  summarize(
+    datasets = n(),
+    records = sum(records),
+    datasets_gbif = round(sum(in_gbif) / n(), 2),
+    records_gbif = round(sum(records_gbif) / sum(records), 2)
+  )
+
+formattable(
+  stats, list(
+    records_gbif = x ~ color_tile("white", "darkolivegreen3")(stats$records_gbif),
+    datasets_gbif = x ~ color_tile("white", "darkolivegreen3")(stats$datasets_gbif)
+  )
+)
+```
+
