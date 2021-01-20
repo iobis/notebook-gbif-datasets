@@ -13,6 +13,7 @@ library(dplyr)
 library(robis)
 library(rgbif)
 library(formattable)
+library(htmltools)
 
 p(format(Sys.time(), "%B %d, %Y %H:%M"))
 force_refresh <- TRUE
